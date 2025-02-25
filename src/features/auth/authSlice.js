@@ -3,7 +3,7 @@ import axios from "axios";
 
 // Create axios instance with proper config
 const api = axios.create({
-  baseURL: "https://playground-022-backend.vercel.app",
+  baseURL: "http://localhost:4000",
   withCredentials: true, // Important for cookies
   headers: {
     "Content-Type": "application/json",
