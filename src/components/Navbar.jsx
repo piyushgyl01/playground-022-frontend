@@ -1,15 +1,28 @@
-import React from "react";
+import React, { useState } from "react";
 import { Outlet, Link, useNavigate } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
-import { logoutUser } from "../features/auth/authSlice";
+import { logoutUser, resetAuthState } from "../features/auth/authSlice";
 
 export default function Navbar() {
   const { isAuthenticated, user } = useSelector((state) => state.auth);
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
-  const handleLogout = () => {
-    dispatch(logoutUser());
+  const handleLogout = async () => {
+    setIsLoggingOut(true);
+    try {
+      await dispatch(logoutUser()).unwrap();
+      // Force navigate to login page after logout
+      navigate("/auth");
+    } catch (error) {
+      console.error("Logout failed:", error);
+      // If server logout fails, force reset client state
+      dispatch(resetAuthState());
+      navigate("/auth");
+    } finally {
+      setIsLoggingOut(false);
+    }
   };
 
   return (
@@ -57,23 +70,16 @@ export default function Navbar() {
                       data-bs-toggle="dropdown"
                       aria-expanded="false"
                     >
-                      {user?.name || "Account"}
+                      {user?.name || user?.username || "Account"}
                     </a>
                     <ul className="dropdown-menu dropdown-menu-end">
-                      {/* <li>
-                        <Link className="dropdown-item" to="/profile">
-                          Profile
-                        </Link>
-                      </li>
-                      <li>
-                        <hr className="dropdown-divider" />
-                      </li> */}
                       <li>
                         <button
                           className="dropdown-item"
                           onClick={handleLogout}
+                          disabled={isLoggingOut}
                         >
-                          Logout
+                          {isLoggingOut ? "Logging out..." : "Logout"}
                         </button>
                       </li>
                     </ul>

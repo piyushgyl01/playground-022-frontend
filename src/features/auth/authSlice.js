@@ -38,11 +38,22 @@ export const loginUser = createAsyncThunk(
 
 export const logoutUser = createAsyncThunk(
   "auth/logoutUser",
-  async (_, { rejectWithValue }) => {
+  async (_, { rejectWithValue, dispatch }) => {
     try {
-      const response = await api.post(`/auth/logout`);
+      // Call the server to clear the cookie
+      const response = await api.post(`/auth/logout`, {}, {
+        // Ensure proper credentials handling
+        withCredentials: true
+      });
+      
+      // Immediately reset auth state regardless of server response
+      dispatch(resetAuthState());
+      
       return response.data;
     } catch (error) {
+      console.error("Logout error:", error);
+      // Even if the server logout fails, reset the local state
+      dispatch(resetAuthState());
       return rejectWithValue(error.response?.data || { message: error.message });
     }
   }
