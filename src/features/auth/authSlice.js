@@ -1,10 +1,9 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import axios from "axios";
 
-// Create axios instance with proper config
-const api = axios.create({
-  baseURL: "http://localhost:4000",
-  withCredentials: true, // Important for cookies
+ const api = axios.create({
+  baseURL: "https://playground-022-backend.vercel.app" ,
+  withCredentials: true, 
   headers: {
     "Content-Type": "application/json",
   },
