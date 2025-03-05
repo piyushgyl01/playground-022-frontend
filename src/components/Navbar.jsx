@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Outlet, Link, useNavigate } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
-import { logoutUser, resetAuthState } from "../features/auth/authSlice";
+import { logoutUser } from "../features/auth/authSlice";
 
 export default function Navbar() {
   const { isAuthenticated, user } = useSelector((state) => state.auth);
@@ -9,20 +9,21 @@ export default function Navbar() {
   const navigate = useNavigate();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
-  const handleLogout = async () => {
+  const handleLogout = () => {
     setIsLoggingOut(true);
-    try {
-      await dispatch(logoutUser()).unwrap();
-      // Force navigate to login page after logout
-      navigate("/auth");
-    } catch (error) {
-      console.error("Logout failed:", error);
-      // If server logout fails, force reset client state
-      dispatch(resetAuthState());
-      navigate("/auth");
-    } finally {
-      setIsLoggingOut(false);
-    }
+    
+    dispatch(logoutUser())
+      .then(() => {
+        // Using window.location directly is more reliable for complete logout
+        window.location.href = '/auth';
+      })
+      .catch(() => {
+        // Even if there's an error, redirect to auth page
+        window.location.href = '/auth';
+      })
+      .finally(() => {
+        setIsLoggingOut(false);
+      });
   };
 
   return (

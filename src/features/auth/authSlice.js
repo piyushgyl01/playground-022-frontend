@@ -40,24 +40,32 @@ export const logoutUser = createAsyncThunk(
   "auth/logoutUser",
   async (_, { rejectWithValue, dispatch }) => {
     try {
-      // Call the server to clear the cookie
-      const response = await api.post(`/auth/logout`, {}, {
-        // Ensure proper credentials handling
-        withCredentials: true
+      // First, immediately reset the local state
+      dispatch(resetAuthState());
+      
+      // Then attempt to clear the cookie on the server
+      await api.post('/auth/logout', {}, {
+        withCredentials: true,
+        headers: {
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
+        }
       });
       
-      // Immediately reset auth state regardless of server response
-      dispatch(resetAuthState());
+      // Clear any local storage items if you have any
+      localStorage.removeItem('user');
       
-      return response.data;
+      // Force a hard refresh to clear any cache
+      // window.location.href = '/auth';
+      return { success: true };
     } catch (error) {
       console.error("Logout error:", error);
-      // Even if the server logout fails, reset the local state
-      dispatch(resetAuthState());
-      return rejectWithValue(error.response?.data || { message: error.message });
+      // Already reset the state above, so just return the error
+      return rejectWithValue({ message: "Server logout failed, but you've been logged out locally" });
     }
   }
 );
+
 
 export const getCurrentUser = createAsyncThunk(
   "auth/getCurrentUser",
