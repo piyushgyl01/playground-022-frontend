@@ -1,14 +1,5 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
-import axios from "axios";
-
-// Reuse the same API instance that you created in authSlice
-const api = axios.create({
-  baseURL: "http://localhost:4000",
-  withCredentials: true,
-  headers: {
-    "Content-Type": "application/json",
-  },
-});
+import { api } from "../auth/authSlice"; // Import the API instance from authSlice
 
 // Create post thunk
 export const createPost = createAsyncThunk(
@@ -18,7 +9,7 @@ export const createPost = createAsyncThunk(
       const response = await api.post("/posts", postData);
       return response.data.post;
     } catch (error) {
-      return rejectWithValue(error.response.data);
+      return rejectWithValue(error.response?.data || { message: error.message });
     }
   }
 );
@@ -31,7 +22,7 @@ export const getAllPosts = createAsyncThunk(
       const response = await api.get("/posts");
       return response.data.posts;
     } catch (error) {
-      return rejectWithValue(error.response.data);
+      return rejectWithValue(error.response?.data || { message: error.message });
     }
   }
 );
@@ -44,7 +35,7 @@ export const updatePost = createAsyncThunk(
       const response = await api.put(`/posts/${id}`, postData);
       return response.data.post;
     } catch (error) {
-      return rejectWithValue(error.response.data);
+      return rejectWithValue(error.response?.data || { message: error.message });
     }
   }
 );
@@ -57,7 +48,7 @@ export const deletePost = createAsyncThunk(
       await api.delete(`/posts/${id}`);
       return id;
     } catch (error) {
-      return rejectWithValue(error.response.data);
+      return rejectWithValue(error.response?.data || { message: error.message });
     }
   }
 );

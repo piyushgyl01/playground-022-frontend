@@ -1,8 +1,9 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import axios from "axios";
 
- const api = axios.create({
-  baseURL: "https://playground-022-backend.vercel.app" ,
+// Create a consistent API instance to use throughout the app
+export const api = axios.create({
+  baseURL: "https://playground-022-backend.vercel.app",
   withCredentials: true, 
   headers: {
     "Content-Type": "application/json",
@@ -16,19 +17,21 @@ export const registerUser = createAsyncThunk(
       const response = await api.post(`/auth/register`, userData);
       return response.data;
     } catch (error) {
-      return rejectWithValue(error.response.data);
+      return rejectWithValue(error.response?.data || { message: error.message });
     }
   }
 );
 
 export const loginUser = createAsyncThunk(
   "auth/loginUser",
-  async (userData, { rejectWithValue }) => {
+  async (userData, { rejectWithValue, dispatch }) => {
     try {
       const response = await api.post(`/auth/login`, userData);
+      // After successful login, fetch the user data
+      dispatch(getCurrentUser());
       return response.data;
     } catch (error) {
-      return rejectWithValue(error.response.data);
+      return rejectWithValue(error.response?.data || { message: error.message });
     }
   }
 );
@@ -38,10 +41,9 @@ export const logoutUser = createAsyncThunk(
   async (_, { rejectWithValue }) => {
     try {
       const response = await api.post(`/auth/logout`);
-      window.location.href = "/auth";
       return response.data;
     } catch (error) {
-      return rejectWithValue(error.response.data);
+      return rejectWithValue(error.response?.data || { message: error.message });
     }
   }
 );
@@ -53,7 +55,7 @@ export const getCurrentUser = createAsyncThunk(
       const response = await api.get("/auth/me");
       return response.data;
     } catch (error) {
-      return rejectWithValue(error.response.data);
+      return rejectWithValue(error.response?.data || { message: error.message });
     }
   }
 );
@@ -62,9 +64,21 @@ export const authSlice = createSlice({
   name: "auth",
   initialState: {
     user: null,
-    status: "loading",
+    status: "idle", // Changed from 'loading' to 'idle' for initial state
     error: null,
     isAuthenticated: false,
+  },
+  reducers: {
+    clearError: (state) => {
+      state.error = null;
+    },
+    // Add a logout reducer to clear auth state on client side
+    resetAuthState: (state) => {
+      state.user = null;
+      state.isAuthenticated = false;
+      state.status = "idle";
+      state.error = null;
+    }
   },
   extraReducers: (builder) => {
     builder
@@ -84,15 +98,20 @@ export const authSlice = createSlice({
         state.status = "loading";
         state.error = null;
       })
-      .addCase(loginUser.fulfilled, (state, action) => {
+      .addCase(loginUser.fulfilled, (state) => {
         state.status = "succeeded";
-        state.isAuthenticated = true;
-        state.user = action.payload; // Assuming API returns user data
+        // Don't set user here - we'll get it from getCurrentUser
         state.error = null;
+        // Don't set isAuthenticated here either
       })
       .addCase(loginUser.rejected, (state, action) => {
         state.status = "failed";
         state.error = action.payload?.message || "Login failed";
+      })
+      .addCase(logoutUser.fulfilled, (state) => {
+        state.user = null;
+        state.isAuthenticated = false;
+        state.status = "idle";
       })
       .addCase(getCurrentUser.pending, (state) => {
         state.status = "loading";
@@ -110,5 +129,5 @@ export const authSlice = createSlice({
   },
 });
 
-export const { clearError } = authSlice.actions;
+export const { clearError, resetAuthState } = authSlice.actions;
 export default authSlice.reducer;
