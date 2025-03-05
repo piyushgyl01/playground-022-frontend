@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
-import { getCurrentUser, loginUser, registerUser } from "./authSlice";
+import { getCurrentUser, loginUser, registerUser, clearError } from "./authSlice";
 import { useNavigate } from "react-router-dom";
 
 export default function Auth() {
@@ -12,21 +12,45 @@ export default function Auth() {
   });
 
   const [isLogin, setIsLogin] = useState(true);
+  const [registrationSuccess, setRegistrationSuccess] = useState(false);
 
   const dispatch = useDispatch();
-  const { status, error } = useSelector((state) => state.auth);
+  const { status, error, isAuthenticated } = useSelector((state) => state.auth);
   const navigate = useNavigate();
+  
   useEffect(() => {
-    if (status === "succeeded") {
-      dispatch(getCurrentUser()).then(() => {
-        navigate("/");
-      }).catch(() => {
-        // If getCurrentUser fails, still navigate or handle the error
-        navigate("/");
+    // Check if the user is already authenticated
+    dispatch(getCurrentUser());
+  }, [dispatch]);
+
+  useEffect(() => {
+    // If user is authenticated, navigate to home
+    if (isAuthenticated) {
+      navigate("/");
+    }
+  }, [isAuthenticated, navigate]);
+
+  useEffect(() => {
+    // Handle successful registration - switch to login form and show message
+    if (status === "succeeded" && !isLogin && !isAuthenticated) {
+      setRegistrationSuccess(true);
+      setIsLogin(true); // Switch to login form
+      // Reset the form
+      setUserData({
+        name: "",
+        username: userData.username, // Keep the username for convenience
+        email: "",
+        password: "",
       });
     }
-  }, [status, dispatch, navigate]);
-  
+  }, [status, isLogin, isAuthenticated, userData.username]);
+
+  // Clear error when switching between login/register
+  useEffect(() => {
+    if (error) {
+      dispatch(clearError());
+    }
+  }, [isLogin, dispatch, error]);
 
   const handleChange = (e) => {
     setUserData((prevData) => ({
@@ -37,6 +61,8 @@ export default function Auth() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    setRegistrationSuccess(false);
+    
     if (isLogin) {
       // For login, we only need username and password
       const { username, password } = userData;
@@ -83,6 +109,12 @@ export default function Auth() {
           {error && (
             <div className="alert alert-danger" role="alert">
               {error}
+            </div>
+          )}
+          
+          {registrationSuccess && (
+            <div className="alert alert-success" role="alert">
+              Registration successful! Please login with your credentials.
             </div>
           )}
 
@@ -144,7 +176,11 @@ export default function Auth() {
               />
             </div>
             <div className="text-center">
-              <button type="submit" className="btn btn-primary">
+              <button 
+                type="submit" 
+                className="btn btn-primary"
+                disabled={status === "loading"}
+              >
                 {status === "loading"
                   ? "Loading..."
                   : isLogin
